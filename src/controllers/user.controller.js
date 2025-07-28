@@ -3,10 +3,11 @@ import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-
+import path from "path";
 const registerUser = asyncHandler(
 
     async (req, res) => {
+
         // get user details from frontend
         // validation 
         // check if user already exists: username, email
@@ -19,7 +20,7 @@ const registerUser = asyncHandler(
 
         const { fullName, email, userName, password } = req.body
         //  console.log("email :", email);
-
+        console.log("FILES RECEIVED:", req.files);
 
         if (
             [fullName, email, userName, password].some((field) => field?.trim() === "")
@@ -27,20 +28,29 @@ const registerUser = asyncHandler(
             throw new ApiError(400, "All fields are required")
         }
 
-        const existedUser = User.findOne({
+        const existedUser = await User.findOne({
             $or: [{ userName }, { email }]
         })
         if (existedUser) {
             throw new ApiError(409, "User email or username already exits")
         }
         const avatarLocalPath = req.files?.avatar[0]?.path;
-        const coverImageLocalPath = req.files?.coverImage[0]?.path;
+        // const avatarLocalPath = path.resolve(req.files?.avatar[0]?.path);
+        // const coverImageLocalPath = req.files?.coverImage[0]?.path;
+        // const coverImageLocalPath = path.resolve(req.files?.coverImage[0]?.path);
+
+        let coverImageLocalPath;
+        if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
+            coverImageLocalPath = rwq.files.coverImage[0].path
+        }
+
 
         if (!avatarLocalPath) {
             throw new ApiError(400, "Avatar files is required")
         }
 
         const avatar = await uploadOnCloudinary(avatarLocalPath)
+        console.log("Avatar upload result:", avatar);
         const coverImage = await uploadOnCloudinary(coverImageLocalPath)
 
         if (!avatar) {
